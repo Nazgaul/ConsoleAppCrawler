@@ -14,6 +14,14 @@ namespace ConsoleAppCrawler
             {
                 return new CrawlDecision { Allow = false, Reason = "This is redirect Url" };
             }
+            //StudySoup whitelist
+            var absPath = pageToCrawl.Uri.AbsolutePath;
+            if (pageToCrawl.Uri.Authority.Equals("studysoup.com")&&
+                !(absPath.StartsWith("/flashcard")||absPath.StartsWith("/note")||absPath.StartsWith("/guide")||absPath.StartsWith("/bundle"))
+                )
+            {
+                return new CrawlDecision { Allow = false, Reason = "Not Part of studysoup whitelist" };
+            }
             return base.ShouldCrawlPage(pageToCrawl, crawlContext);
             //if (!t.Allow)
             //{
