@@ -2,6 +2,7 @@ using Abot.Core;
 using Abot.Poco;
 using AbotX.Core;
 using AbotX.Poco;
+using System.Linq;
 
 namespace ConsoleAppCrawler
 {
@@ -10,24 +11,46 @@ namespace ConsoleAppCrawler
 
         public override CrawlDecision ShouldCrawlPage(PageToCrawl pageToCrawl, CrawlContext crawlContext)
         {
-            if (pageToCrawl.Uri.PathAndQuery.Contains("returnUrl"))
+
+            //if (pageToCrawl.Uri.Authority.Equals("spitball.co"))
+            //{
+            //    if (pageToCrawl.Uri.PathAndQuery.Contains("returnUrl"))
+            //    {
+            //        return new CrawlDecision {Allow = false, Reason = "This is redirect Url"};
+            //    }
+            //}
+
+            if (pageToCrawl.Uri.Authority.Equals("studysoup.com"))
             {
-                return new CrawlDecision { Allow = false, Reason = "This is redirect Url" };
-            }
-            //StudySoup whitelist
-            var absPath = pageToCrawl.Uri.AbsolutePath;
-            if (pageToCrawl.Uri.Authority.Equals("studysoup.com")&&
-                !(absPath.StartsWith("/flashcard")||absPath.StartsWith("/note")||absPath.StartsWith("/guide")||absPath.StartsWith("/bundle"))
-                )
-            {
-                return new CrawlDecision { Allow = false, Reason = "Not Part of studysoup whitelist" };
+                if (pageToCrawl.Uri.PathAndQuery.ToLowerInvariant().Contains("xml"))
+                {
+                    return new CrawlDecision
+                    {
+                        Allow = true
+                    };
+                }
+                var segments = pageToCrawl.Uri.Segments;
+                
+                if (segments.Length < 2)
+                {
+                    return new CrawlDecision { Allow = false, Reason = "Not Part of studysoup white list" };
+                }
+                var absPath = pageToCrawl.Uri.Segments[1].ToLowerInvariant().Replace("/", string.Empty);
+                var whiteList = new[] { "flashcard", "note", "guide", "bundle" };
+
+                if (whiteList.Contains(absPath))
+                {
+                    return base.ShouldCrawlPage(pageToCrawl, crawlContext);
+
+                }
+                else
+                {
+                    return new CrawlDecision { Allow = false, Reason = "Not Part of studysoup white list" };
+                }
+
+              
             }
             return base.ShouldCrawlPage(pageToCrawl, crawlContext);
-            //if (!t.Allow)
-            //{
-
-            //}
-            //return t;
         }
 
 

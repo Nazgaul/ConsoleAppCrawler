@@ -37,10 +37,10 @@ namespace ConsoleAppCrawler
             m_Crawler.PageCrawlCompleted += crawler_ProcessPageCrawlCompleted;
             m_Crawler.PageCrawlDisallowed += Crawler_PageCrawlDisallowed;
             m_Crawler.PageCrawlStarting += M_Crawler_PageCrawlStarting;
-            m_Crawler.ShouldDownloadPageContent((page, context) =>
-            {
-                return new CrawlDecision { Allow = true };
-            });
+            //m_Crawler.ShouldDownloadPageContent((page, context) =>
+            //{
+            //    return new CrawlDecision { Allow = true };
+            //});
 
             m_List = collection;
             m_LockObject = obj;
@@ -61,12 +61,12 @@ namespace ConsoleAppCrawler
         public async Task<CrawlResult> DoStuffAsync()
         {
             //https://www.spitball.co/sitemap.xml
-           // var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
-            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
-            t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/guide/2392731/cnc-142-midterm-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
-            t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/flashcard/272449/micro-economics-taya-schowalter-iv")).ConfigureAwait(false);
-            t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/bundle/2310235/buad-341-001-week-1-fall-2016-randi-myers")).ConfigureAwait(false);
-            Console.WriteLine("finish to crawl with count " + m_Count);
+            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
+            //var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
+            //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/guide/2392731/cnc-142-midterm-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
+            //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/flashcard/272449/micro-economics-taya-schowalter-iv")).ConfigureAwait(false);
+            //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/bundle/2310235/buad-341-001-week-1-fall-2016-randi-myers")).ConfigureAwait(false);
+            //Console.WriteLine("finish to crawl with count " + m_Count);
             //Console.WriteLine($"finish to crawl with count {crawlDecision.count} {m_Count2}");
 
             return t;
@@ -139,22 +139,25 @@ namespace ConsoleAppCrawler
             var angleSharpHtmlDocument = crawledPage.AngleSharpHtmlDocument; //AngleSharp parser
 
             var viewsText = angleSharpHtmlDocument.QuerySelector(".document-metrics:nth-child(3)")?.Text()?.Trim();
-            var views = (!String.IsNullOrEmpty(viewsText)) ? Regex.Match(viewsText, @"\d+").Value : "0";
+            var views = !string.IsNullOrEmpty(viewsText) ? Regex.Match(viewsText, @"\d+").Value : "0";
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
             var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim();
             var metaImage = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[property='og:image']")?.Content?.Trim();
-            string university=String.Empty, course=String.Empty, content,tags=String.Empty;
-            string extraData = angleSharpHtmlDocument.QuerySelector(".small-padding-bottom.detail-box")?.Text();
-            if (String.IsNullOrEmpty(extraData))
+            var university=string.Empty;
+            var course =string.Empty;
+            var content = string.Empty;
+            var tags =string.Empty;
+            var extraData = angleSharpHtmlDocument.QuerySelector(".small-padding-bottom.detail-box")?.Text();
+            if (!string.IsNullOrEmpty(extraData))
             {
-                if (extraData.IndexOf("School:") > -1)
-                    university = extraData.Substring(extraData.IndexOf("School:") + "School:".Length).Split('\n')[0]?.Trim();
-                if (extraData.IndexOf("Course:") > -1)
-                    course = extraData.Substring(extraData.IndexOf("Course:") + "Course:".Length).Split('\n')[0]?.Trim();
-                if (extraData.IndexOf("Tags:") > -1)
-                    tags = extraData.Substring(extraData.IndexOf("Tags:") + "Tags:".Length).Split('\n')[0]?.Trim();
+                if (extraData.IndexOf("School:", StringComparison.Ordinal) > -1)
+                    university = extraData.Substring(extraData.IndexOf("School:", StringComparison.Ordinal) + "School:".Length).Split('\n')[0]?.Trim();
+                if (extraData.IndexOf("Course:", StringComparison.Ordinal) > -1)
+                    course = extraData.Substring(extraData.IndexOf("Course:", StringComparison.Ordinal) + "Course:".Length).Split('\n')[0]?.Trim();
+                if (extraData.IndexOf("Tags:", StringComparison.Ordinal) > -1)
+                    tags = extraData.Substring(extraData.IndexOf("Tags:", StringComparison.Ordinal) + "Tags:".Length).Split('\n')[0]?.Trim();
             }
             if (!crawledPage.Uri.AbsolutePath.StartsWith("/flashcard"))
             {
@@ -163,9 +166,14 @@ namespace ConsoleAppCrawler
             else {
                 //Remove the cards front back headers from the text
                 var allContent = angleSharpHtmlDocument.QuerySelector("#preview")?.Text();
-                var backIndex = allContent.IndexOf("Back");
-                content = allContent.Substring(backIndex + "Back".Length)?.Trim();
+                if (allContent != null)
+                {
+                    var backIndex = allContent.IndexOf("Back", StringComparison.Ordinal);
+                    content = allContent.Substring(backIndex + "Back".Length).Trim();
+                }
             }
+            //TODO: date
+            //TODO: contentcount - flashcard number of cards, document number of pages
             return new { university, course, title, content, views, metaTitle, metaDescription, metaKeyword, tags};
         }
     }

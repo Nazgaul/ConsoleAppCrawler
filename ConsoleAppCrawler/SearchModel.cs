@@ -26,9 +26,17 @@ namespace ConsoleAppCrawler
 
         [ProtoMember(4)]
         [IsSearchable]
-        public string Meta { get; set; }
+        public string MetaTitle { get; set; }
+
+        [ProtoMember(6)]
+        [IsSearchable]
+        public string MetaDescription { get; set; }
 
         [ProtoMember(5)]
         public string Url { get; set; }
+
+
+        [ProtoMember(6)]
+        public string Image { get; set; }
     }
 }
