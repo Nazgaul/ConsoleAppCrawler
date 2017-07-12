@@ -11,6 +11,7 @@ using AngleSharp.Dom.Html;
 using AngleSharp.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace ConsoleAppCrawler
 {
@@ -61,8 +62,8 @@ namespace ConsoleAppCrawler
         public async Task<CrawlResult> DoStuffAsync()
         {
             //https://www.spitball.co/sitemap.xml
-            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
-            //var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
+            //var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
+            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/guide/2392731/cnc-142-midterm-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/flashcard/272449/micro-economics-taya-schowalter-iv")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/bundle/2310235/buad-341-001-week-1-fall-2016-randi-myers")).ConfigureAwait(false);
@@ -140,6 +141,8 @@ namespace ConsoleAppCrawler
 
             var viewsText = angleSharpHtmlDocument.QuerySelector(".document-metrics:nth-child(3)")?.Text()?.Trim();
             var views = !string.IsNullOrEmpty(viewsText) ? Regex.Match(viewsText, @"\d+").Value : "0";
+            var contentCountText = angleSharpHtmlDocument.QuerySelector("span.document-metrics")?.Text()?.Trim();
+            var contentCount = !string.IsNullOrEmpty(contentCountText) ? Regex.Match(contentCountText, @"\d+").Value : "0";
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
@@ -148,17 +151,21 @@ namespace ConsoleAppCrawler
             var university=string.Empty;
             var course =string.Empty;
             var content = string.Empty;
-            var tags =string.Empty;
-            var extraData = angleSharpHtmlDocument.QuerySelector(".small-padding-bottom.detail-box")?.Text();
-            if (!string.IsNullOrEmpty(extraData))
+            string[] tags= new string[] { };
+            var allHeaders = angleSharpHtmlDocument.QuerySelectorAll(".small-padding-bottom.detail-box h5");
+            var createDate = new DateTime();
+            //Init the extra data details according what exist
+            foreach (var item in allHeaders)
             {
-                if (extraData.IndexOf("School:", StringComparison.Ordinal) > -1)
-                    university = extraData.Substring(extraData.IndexOf("School:", StringComparison.Ordinal) + "School:".Length).Split('\n')[0]?.Trim();
-                if (extraData.IndexOf("Course:", StringComparison.Ordinal) > -1)
-                    course = extraData.Substring(extraData.IndexOf("Course:", StringComparison.Ordinal) + "Course:".Length).Split('\n')[0]?.Trim();
-                if (extraData.IndexOf("Tags:", StringComparison.Ordinal) > -1)
-                    tags = extraData.Substring(extraData.IndexOf("Tags:", StringComparison.Ordinal) + "Tags:".Length).Split('\n')[0]?.Trim();
+                var header = item.ChildNodes[0].Text().Trim();
+                if (header.Equals("School:")) { university = item.FirstElementChild.Text(); }
+                else if (header.Equals("Course:")) { course = item.FirstElementChild.Text(); }
+                else if (header.Equals("Tags:")) { tags = item.FirstElementChild.Text()?.Split(','); }
+                else if (header.Equals("Upload Date:")) {
+                    DateTime.TryParseExact(item.FirstElementChild.Text(), "ddd MMM dd hh:mm:ss yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out createDate);
+                }
             }
+
             if (!crawledPage.Uri.AbsolutePath.StartsWith("/flashcard"))
             {
                 content = angleSharpHtmlDocument.QuerySelector("#material_text").Text()?.Trim();
@@ -172,9 +179,8 @@ namespace ConsoleAppCrawler
                     content = allContent.Substring(backIndex + "Back".Length).Trim();
                 }
             }
-            //TODO: date
-            //TODO: contentcount - flashcard number of cards, document number of pages
-            return new { university, course, title, content, views, metaTitle, metaDescription, metaKeyword, tags};
+
+            return new { university, course, title, content, contentCount, createDate, views, metaTitle, metaDescription, metaKeyword, tags, metaImage };
         }
     }
 }
