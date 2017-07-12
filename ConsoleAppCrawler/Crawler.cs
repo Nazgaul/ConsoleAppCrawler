@@ -179,7 +179,7 @@ namespace ConsoleAppCrawler
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
-            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim().Split(' ');
+            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim().Split( new [] {' '},StringSplitOptions.RemoveEmptyEntries);
             var metaImage = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[property='og:image']")?.Content?.Trim();
             var university = string.Empty;
             var course = string.Empty;
