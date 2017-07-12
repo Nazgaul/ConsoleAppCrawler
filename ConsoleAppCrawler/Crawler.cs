@@ -1,19 +1,18 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Abot.Core;
+using Abot.Crawler;
 using Abot.Poco;
 using AbotX.Core;
 using AbotX.Crawler;
 using AbotX.Poco;
 using AngleSharp.Dom.Html;
 using AngleSharp.Extensions;
-using Microsoft.IdentityModel.Tokens;
-using System.Text.RegularExpressions;
-using System.Globalization;
 
 namespace ConsoleAppCrawler
 {
@@ -51,12 +50,12 @@ namespace ConsoleAppCrawler
 
 
 
-        private void M_Crawler_PageCrawlStarting(object sender, Abot.Crawler.PageCrawlStartingArgs e)
+        private void M_Crawler_PageCrawlStarting(object sender, PageCrawlStartingArgs e)
         {
             m_Count2++;
         }
 
-        private void Crawler_PageCrawlDisallowed(object sender, Abot.Crawler.PageCrawlDisallowedArgs e)
+        private void Crawler_PageCrawlDisallowed(object sender, PageCrawlDisallowedArgs e)
         {
             // Console.WriteLine("disallow page");
         }
@@ -84,7 +83,7 @@ namespace ConsoleAppCrawler
         }
 
 
-        void crawler_ProcessPageCrawlCompleted(object sender, Abot.Crawler.PageCrawlCompletedArgs e)
+        void crawler_ProcessPageCrawlCompleted(object sender, PageCrawlCompletedArgs e)
         {
             var crawledPage = e.CrawledPage;
 
@@ -105,10 +104,14 @@ namespace ConsoleAppCrawler
                 Console.WriteLine("Page had no content {0}", crawledPage.Uri.AbsoluteUri);
                 return;
             }
-            Object model;
             if (crawledPage.Uri.Authority.Equals("studysoup.com"))
             {
-                model = CreateStudySoupNote(crawledPage);
+                var model = CreateStudySoupNote(crawledPage);
+                Console.WriteLine("Finish processing {0}", crawledPage.Uri.AbsoluteUri);
+                lock (m_LockObject)
+                {
+                    m_List.Add(model);
+                }
             }
             //m_Count++;
 
@@ -137,21 +140,21 @@ namespace ConsoleAppCrawler
 
         }
 
-        private string CalculateMD5Hash(string input)
+        private static string CalculateMd5Hash(string input)
 
         {
 
             // step 1, calculate MD5 hash from input
 
-            MD5 md5 = MD5.Create();
+            var md5 = MD5.Create();
 
-            byte[] inputBytes = Encoding.ASCII.GetBytes(input);
+            var inputBytes = Encoding.ASCII.GetBytes(input);
 
-            byte[] hash = md5.ComputeHash(inputBytes);
+            var hash = md5.ComputeHash(inputBytes);
 
             // step 2, convert byte array to hex string
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             for (int i = 0; i < hash.Length; i++)
 
@@ -172,16 +175,16 @@ namespace ConsoleAppCrawler
             var viewsText = angleSharpHtmlDocument.QuerySelector(".document-metrics:nth-child(3)")?.Text()?.Trim();
             var views = !string.IsNullOrEmpty(viewsText) ? Regex.Match(viewsText, @"\d+").Value : "0";
             var contentCountText = angleSharpHtmlDocument.QuerySelector("span.document-metrics")?.Text()?.Trim();
-            var contentCount = !string.IsNullOrEmpty(contentCountText) ? Regex.Match(contentCountText, @"\d+").Value : "0";
+            int.TryParse(Regex.Match(contentCountText ?? "", @"\d+").Value, out int contentCount);
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
-            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim()?.Split(' ');
+            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim().Split(' ');
             var metaImage = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[property='og:image']")?.Content?.Trim();
-            var university=string.Empty;
-            var course =string.Empty;
+            var university = string.Empty;
+            var course = string.Empty;
             var content = string.Empty;
-            string[] tags= new string[] { };
+            string[] tags = { };
             var allHeaders = angleSharpHtmlDocument.QuerySelectorAll(".small-padding-bottom.detail-box h5");
             var createDate = new DateTime();
             //Init the extra data details according what exist
@@ -191,16 +194,18 @@ namespace ConsoleAppCrawler
                 if (header.Equals("School:")) { university = item.FirstElementChild.Text(); }
                 else if (header.Equals("Course:")) { course = item.FirstElementChild.Text(); }
                 else if (header.Equals("Tags:")) { tags = item.FirstElementChild.Text()?.Split(','); }
-                else if (header.Equals("Upload Date:")) {
+                else if (header.Equals("Upload Date:"))
+                {
                     DateTime.TryParseExact(item.FirstElementChild.Text(), "ddd MMM dd hh:mm:ss yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out createDate);
                 }
             }
 
             if (!crawledPage.Uri.AbsolutePath.StartsWith("/flashcard"))
             {
-                content = angleSharpHtmlDocument.QuerySelector("#material_text").Text()?.Trim();
+                content = angleSharpHtmlDocument.QuerySelector("#material_text")?.Text()?.Trim();
             }
-            else {
+            else
+            {
                 //Remove the cards front back headers from the text
                 var allContent = angleSharpHtmlDocument.QuerySelector("#preview")?.Text();
                 if (allContent != null)
@@ -214,7 +219,7 @@ namespace ConsoleAppCrawler
 
             return new SearchModel
             {
-                Id = CalculateMD5Hash(crawledPage.Uri.AbsoluteUri),
+                Id = CalculateMd5Hash(crawledPage.Uri.AbsoluteUri),
                 Content = content,
                 Course = course,
                 Image = metaImage,
@@ -225,7 +230,10 @@ namespace ConsoleAppCrawler
                 Title = title,
                 University = university,
                 Url = crawledPage.Uri.AbsoluteUri,
-                Views = views
+                Views = views,
+                Date = createDate,
+                ContentCount = contentCount
+
             };
         }
     }

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
+using Newtonsoft.Json;
 using ProtoBuf;
 
 namespace ConsoleAppCrawler
@@ -16,6 +17,7 @@ namespace ConsoleAppCrawler
     {
         [Key]
         [ProtoMember(1)]
+        [JsonProperty(PropertyName ="id")]
         public string Id { get; set; }
         [ProtoMember(2)]
         [IsSearchable]
@@ -55,5 +57,12 @@ namespace ConsoleAppCrawler
 
         [ProtoMember(12)]
         public string Views { get; set; }
+
+        [ProtoMember(13)]
+        public DateTime Date { get; set; }
+
+
+        [ProtoMember(14)]
+        public int ContentCount { get; set; }
     }
 }
