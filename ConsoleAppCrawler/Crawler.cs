@@ -62,8 +62,8 @@ namespace ConsoleAppCrawler
         public async Task<CrawlResult> DoStuffAsync()
         {
             //https://www.spitball.co/sitemap.xml
-            //var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
-            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
+            var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/sitemap.xml.gz")).ConfigureAwait(false);
+            //var t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/note/2413595/cnc-142-week-11-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/guide/2392731/cnc-142-midterm-spring-2017-kasandra-angermeier")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/flashcard/272449/micro-economics-taya-schowalter-iv")).ConfigureAwait(false);
             //t = await m_Crawler.CrawlAsync(new Uri("https://studysoup.com/bundle/2310235/buad-341-001-week-1-fall-2016-randi-myers")).ConfigureAwait(false);
@@ -146,7 +146,7 @@ namespace ConsoleAppCrawler
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
-            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim();
+            var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim()?.Split(' ');
             var metaImage = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[property='og:image']")?.Content?.Trim();
             var university=string.Empty;
             var course =string.Empty;
