@@ -28,15 +28,32 @@ namespace ConsoleAppCrawler
         [IsSearchable]
         public string MetaTitle { get; set; }
 
-        [ProtoMember(6)]
+        [ProtoMember(5)]
         [IsSearchable]
         public string MetaDescription { get; set; }
 
-        [ProtoMember(5)]
+        [ProtoMember(6)]
+        [IsSearchable]
+        public string[] MetaKeyword { get; set; }
+
+        [ProtoMember(7)]
+        [IsSearchable]
+        public string[] Tags { get; set; }
+
+        [ProtoMember(8)]
         public string Url { get; set; }
 
 
-        [ProtoMember(6)]
+        [ProtoMember(9)]
         public string Image { get; set; }
+
+        [ProtoMember(10)]
+        public string University { get; set; }
+
+        [ProtoMember(11)]
+        public string Course { get; set; }
+
+        [ProtoMember(12)]
+        public string Views { get; set; }
     }
 }

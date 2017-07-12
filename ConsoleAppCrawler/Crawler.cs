@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Abot.Core;
 using Abot.Poco;
@@ -134,7 +136,35 @@ namespace ConsoleAppCrawler
 
         }
 
-        Object CreateStudySoupNote(CrawledPage crawledPage)
+        private string CalculateMD5Hash(string input)
+
+        {
+
+            // step 1, calculate MD5 hash from input
+
+            MD5 md5 = MD5.Create();
+
+            byte[] inputBytes = Encoding.ASCII.GetBytes(input);
+
+            byte[] hash = md5.ComputeHash(inputBytes);
+
+            // step 2, convert byte array to hex string
+
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < hash.Length; i++)
+
+            {
+
+                sb.Append(hash[i].ToString("X2"));
+
+            }
+
+            return sb.ToString();
+
+        }
+
+        SearchModel CreateStudySoupNote(CrawledPage crawledPage)
         {
             var angleSharpHtmlDocument = crawledPage.AngleSharpHtmlDocument; //AngleSharp parser
 
@@ -174,7 +204,22 @@ namespace ConsoleAppCrawler
             }
             //TODO: date
             //TODO: contentcount - flashcard number of cards, document number of pages
-            return new { university, course, title, content, views, metaTitle, metaDescription, metaKeyword, tags};
+
+            return new SearchModel
+            {
+                Id = CalculateMD5Hash(crawledPage.Uri.AbsoluteUri),
+                Content = content,
+                Course = course,
+                Image = metaImage,
+                MetaDescription = metaDescription,
+                MetaKeyword = metaKeyword,
+                MetaTitle = metaTitle,
+                Tags = tags,
+                Title = title,
+                University = university,
+                Url = crawledPage.Uri.AbsoluteUri,
+                Views = views
+            };
         }
     }
 }
