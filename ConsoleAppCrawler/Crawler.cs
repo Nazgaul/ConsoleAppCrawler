@@ -177,6 +177,7 @@ namespace ConsoleAppCrawler
             var contentCountText = angleSharpHtmlDocument.QuerySelector("span.document-metrics")?.Text()?.Trim();
             int.TryParse(Regex.Match(contentCountText ?? "", @"\d+").Value, out int contentCount);
             var title = angleSharpHtmlDocument.QuerySelector("span.current")?.Text()?.Trim();
+            if (string.IsNullOrEmpty(title)) title = angleSharpHtmlDocument.QuerySelector("title")?.Text()?.Trim();
             var metaDescription = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=description]")?.Content?.Trim();
             var metaTitle = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=title]")?.Content?.Trim();
             var metaKeyword = angleSharpHtmlDocument.QuerySelector<IHtmlMetaElement>("meta[name=keywords]")?.Content?.Trim().Split( new [] {' '},StringSplitOptions.RemoveEmptyEntries);
@@ -196,7 +197,11 @@ namespace ConsoleAppCrawler
                 else if (header.Equals("Tags:")) { tags = item.FirstElementChild.Text()?.Split(','); }
                 else if (header.Equals("Upload Date:"))
                 {
-                    DateTime.TryParseExact(item.FirstElementChild.Text(), "ddd MMM dd hh:mm:ss yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out createDate);
+                    var dateString = item.FirstElementChild.Text().Replace("  ", " ");
+                    if(!DateTime.TryParseExact(dateString, "ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out createDate))
+                    {
+                        DateTime.TryParseExact(dateString, "ddd MMM d HH:mm:ss yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out createDate);
+                    }
                 }
             }
 
@@ -214,9 +219,6 @@ namespace ConsoleAppCrawler
                     content = allContent.Substring(backIndex + "Back".Length).Trim();
                 }
             }
-            //TODO: date
-            //TODO: contentcount - flashcard number of cards, document number of pages
-
             return new SearchModel
             {
                 Id = CalculateMd5Hash(crawledPage.Uri.AbsoluteUri),
