@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Newtonsoft.Json;
@@ -17,11 +13,13 @@ namespace ConsoleAppCrawler
     {
         [Key]
         [ProtoMember(1)]
-        [JsonProperty(PropertyName ="id")]
+        [JsonProperty(PropertyName = "id")]
         public string Id { get; set; }
+
         [ProtoMember(2)]
         [IsSearchable]
         public string Title { get; set; }
+
         [ProtoMember(3)]
         [IsSearchable]
         public string Content { get; set; }

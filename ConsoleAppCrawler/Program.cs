@@ -1,39 +1,29 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using Abot.Crawler;
-using Abot.Poco;
-using AngleSharp.Dom.Html;
-using AngleSharp.Extensions;
-using HtmlAgilityPack;
 using log4net.Config;
 using Microsoft.Azure;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using ProtoBuf;
 
 namespace ConsoleAppCrawler
 {
-
-    class Program
+    internal class Program
     {
         //https://stackoverflow.com/questions/42581658/crawl-sitemap-with-abot
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
+            //Task.WaitAll(ReadAndExecute("cdc.js"));
             XmlConfigurator.Configure();
-            var dummyList = new List<SearchModel>(2000);
-            var list = new ObservableCollection<SearchModel>(dummyList);
+            var dummyList = new List<CrawlModel>(2000);
+            var list = new ObservableCollection<CrawlModel>(dummyList);
             var lockObject = new object();
 
 
@@ -50,15 +40,16 @@ namespace ConsoleAppCrawler
             var queue = queueClient.GetQueueReference("bing-test");
 
 
-            var m_SearchServiceClient = new SearchServiceClient("cloudents", new SearchCredentials("5B0433BFBBE625C9D60F7330CFF103F0"));
+            var m_SearchServiceClient =
+                new SearchServiceClient("cloudents", new SearchCredentials("5B0433BFBBE625C9D60F7330CFF103F0"));
             var indexClient = m_SearchServiceClient.Indexes.GetClient("bing-test");
 
-            var client = new DocumentClient(new Uri("https://zboxnew.documents.azure.com:443/"), "y2v1XQ6WIg81Soasz5YBA7R8fAp52XhJJufNmHy1t7y3YQzpBqbgRnlRPlatGhyGegKdsLq0qFChzOkyQVYdLQ==");
+            var client = new DocumentClient(new Uri("https://zboxnew.documents.azure.com:443/"),
+                "y2v1XQ6WIg81Soasz5YBA7R8fAp52XhJJufNmHy1t7y3YQzpBqbgRnlRPlatGhyGegKdsLq0qFChzOkyQVYdLQ==");
             var tableUri = UriFactory.CreateDocumentCollectionUri("Zbox", "Crawl-Url");
 
             var t2 = Task.Run(async () =>
             {
-
                 var needContinue = true;
                 while (!t.IsCompleted || needContinue)
                 {
@@ -72,11 +63,9 @@ namespace ConsoleAppCrawler
                     }
                     foreach (var message in cloudQueueMessages)
                     {
-
                         needContinue = true;
                         using (var ms = new MemoryStream(message.AsBytes))
                         {
-
                             var model = Serializer.Deserialize<SearchModel[]>(ms);
                             if (model.Length > 0)
                             {
@@ -85,9 +74,7 @@ namespace ConsoleAppCrawler
                                 // {
 
                                 foreach (var data in model)
-                                {
                                     await client.UpsertDocumentAsync(tableUri, data).ConfigureAwait(false);
-                                }
 
                                 //var batch = IndexBatch.MergeOrUpload(model);
                                 //Console.WriteLine("upload to search");
@@ -111,14 +98,9 @@ namespace ConsoleAppCrawler
                         }
                         await queue.DeleteMessageAsync(message).ConfigureAwait(false);
                     }
-
                 }
                 Console.WriteLine("Finish processing search");
-
-
             });
-
-
 
 
             list.CollectionChanged += List_CollectionChanged;
@@ -127,24 +109,16 @@ namespace ConsoleAppCrawler
             Task.WhenAll(t, t2).Wait();
 
 
-
-
-
-            void List_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+            void List_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
             {
-
-                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+                if (e.Action == NotifyCollectionChangedAction.Add)
                 {
-                    const int batchSize = 20;
+                    const int batchSize = 3;
                     if (list.Count > batchSize)
-                    {
-
                         lock (lockObject)
                         {
                             if (list.Count < batchSize)
-                            {
                                 return;
-                            }
                             var amount = batchSize;
                             while (true)
                             {
@@ -153,10 +127,8 @@ namespace ConsoleAppCrawler
                                     var items = list.Take(amount).ToList();
                                     Serialize(items, queue);
                                     foreach (var item in items)
-                                    {
                                         list.Remove(item);
-                                        //}
-                                    }
+                                    //}
                                     break;
                                 }
                                 catch (ArgumentException ex)
@@ -166,23 +138,15 @@ namespace ConsoleAppCrawler
 #pragma warning disable CC0004 // Catch block cannot be empty
                                 catch (InvalidOperationException ex)
                                 {
-
                                 }
 #pragma warning restore CC0004 // Catch block cannot be empty
                             }
                         }
-                        // }
-
-
-
-
-
-                    }
                 }
             }
         }
 
-        private static void Serialize(IList<SearchModel> items, CloudQueue queue)
+        private static void Serialize(IList<CrawlModel> items, CloudQueue queue)
         {
             using (var m = new MemoryStream())
             {
@@ -191,7 +155,6 @@ namespace ConsoleAppCrawler
                 queue.AddMessage(new CloudQueueMessage(m.ToArray()));
             }
             Console.WriteLine($"finish uploading a batch {items.Count()} {DateTime.Now}");
-
         }
     }
 }
